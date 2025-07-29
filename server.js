@@ -1,4 +1,5 @@
 const redis = require("redis");
+const { setTimeout } = require("timers/promises");
 
 const redisClient = redis.createClient({
   host: "localhost",
@@ -74,7 +75,27 @@ async function connectRedisFunc() {
     // check if a string is a member of a set
 
     const isMember = await redisClient.sIsMember("newSet", "friday");
-    console.log(isMember);
+      console.log(isMember);
+      
+      // emiting, subscribing and listening to an event in redis
+      
+      const subscriber = redisClient.duplicate() // create a duplicate of the redisClient
+
+
+      // connect subscriber to the redis server
+      await subscriber.connect()
+      await subscriber.subscribe("myChannel", (message,channel) => { 
+          console.log(`Message send to lucky from ${channel}:`, message) 
+      })
+      redisClient.publish("myChannel", "Testing channels")
+      redisClient.publish("myChannel", "Testing channel 2")
+      await new Promise((resolve) => { 
+          setTimeout(resolve, 1000)
+      })
+
+      await subscriber.unsubscribe("myChannel")
+      await subscriber.quit()
+
   } catch (error) {
     console.log("Redis connection error:", error);
   } finally {
